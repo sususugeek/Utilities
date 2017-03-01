@@ -1,0 +1,136 @@
+package com.pccw.util.dao;
+
+import java.text.MessageFormat;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcDaoSupport;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import com.google.common.base.Joiner;
+import com.pccw.util.search.Criteria;
+import com.pccw.util.search.SearchResult;
+
+public abstract class Spring3BaseDAO extends NamedParameterJdbcDaoSupport {
+
+	protected Logger logger = LoggerFactory.getLogger(getClass());
+	
+    protected void logSql(String pMethod, String pSql) {
+        if(logger.isDebugEnabled()) {
+            logger.debug("[{}] Sql: {}", pMethod, pSql);
+        }
+    }
+    
+    protected void logSql(String pMethod, String pSql, MapSqlParameterSource pParam) {
+        if(logger.isDebugEnabled()) {
+			logger.debug("[{}] Sql: {}, Param: {}", new Object[] {
+					pMethod,
+					pSql,
+					Joiner.on(",").withKeyValueSeparator("=")
+							.useForNull("null").join(pParam.getValues()) });
+        }
+    }
+    
+    protected void logSql(String pMethod, String pSql, Object pObject) {
+        if(logger.isDebugEnabled()) {
+            logger.debug("[{}] Sql: {}, Object: {}", new Object[]{pMethod, pSql, pObject.toString()});
+        }
+    }
+    
+    protected <T> List<T> queryForList(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
+        return getNamedParameterJdbcTemplate().query(sql, paramSource, rowMapper);
+    }
+
+    protected <T> List<T> queryForList(String sql, SqlParameterSource paramSource, Class<T> elementType) {
+        return getNamedParameterJdbcTemplate().queryForList(sql, paramSource, elementType);
+    }
+
+    protected <T> T queryForObject(String queryName, StringBuilder sqlBuilder, Criteria criteria, RowMapper<T> rowMapper) {
+        if(!criteria.getCriteriaList().isEmpty()) {
+            sqlBuilder.append(" WHERE ").append(Joiner.on(" AND ").useForNull("null").join(criteria.getCriteriaList()));
+        }
+
+        MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource(criteria.getValueMap());
+
+        logSql(queryName, sqlBuilder.toString(), mapSqlParameterSource);
+
+        List<T> list = getNamedParameterJdbcTemplate().query(sqlBuilder.toString(), mapSqlParameterSource, rowMapper);
+        if(list == null || list.size() == 0) {
+            return null;
+        }
+
+        return list.get(0);
+    }
+
+    protected <T> T queryForObject(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
+        List<T> list = getNamedParameterJdbcTemplate().query(sql, paramSource, rowMapper);
+        if(list == null || list.size() == 0) {
+            return null;
+        }
+
+        return list.get(0);
+    }
+
+    protected <T> T queryForObject(String sql, SqlParameterSource paramSource, Class<T> elementType) {
+        List<T> list = getNamedParameterJdbcTemplate().queryForList(sql, paramSource, elementType);
+        if(list == null || list.size() == 0) {
+            return null;
+        }
+        return list.get(0);
+    }
+
+   
+    protected <T> SearchResult<T> search(String pName, StringBuilder pSqlBuilder, Criteria pCriteria, RowMapper<T> pRowMapper) {
+        
+    	SearchResult<T> result = SearchResult.newInstance();
+
+    	StringBuilder totalCntSql = new StringBuilder();
+    	StringBuilder resultSql = new StringBuilder();
+    	
+    	totalCntSql.append("SELECT COUNT(*) FROM ( ");
+    	resultSql.append("SELECT * FROM ( ");
+    	
+    	if (pSqlBuilder.toString().indexOf("{0}") != -1) {
+    		String sql = pSqlBuilder.toString();
+    		pSqlBuilder.setLength(0);
+    		String whereStr = pCriteria.getCriteriaList().isEmpty() ? "" : " WHERE " + Joiner.on(" AND ").useForNull("null").join(pCriteria.getCriteriaList()); 
+    		pSqlBuilder.append(MessageFormat.format(sql, new Object[] {whereStr}));
+    	} else if (!pCriteria.getCriteriaList().isEmpty()) {
+            pSqlBuilder.append(" WHERE ").append(Joiner.on(" AND ").useForNull("null").join(pCriteria.getCriteriaList()));
+        }
+
+		if (!pCriteria.getGroupByList().isEmpty()) {
+            pSqlBuilder.append(" GROUP BY ").append(Joiner.on(",").useForNull("null").join(pCriteria.getGroupByList()));
+        }
+
+        if(!pCriteria.getOrderByMap().isEmpty()) {
+            pSqlBuilder.append(" ORDER BY ").append(Joiner.on(",").withKeyValueSeparator(" ").useForNull("null").join(pCriteria.getOrderByMap()));
+        }
+        totalCntSql.append(pSqlBuilder.toString());
+        totalCntSql.append(" )");
+        resultSql.append(pSqlBuilder.toString());
+        resultSql.append(" )");
+        
+		if (pCriteria.getLimit() > 0) {
+			resultSql.append(" WHERE rownum BETWEEN ")
+					.append(pCriteria.getOffset()).append(" AND ")
+					.append(pCriteria.getLimit() + pCriteria.getOffset());
+		}
+        
+        MapSqlParameterSource mapSqlParameterSource = new MapSqlParameterSource(pCriteria.getValueMap());
+
+        logSql(pName, resultSql.toString(), mapSqlParameterSource);
+
+        List<T> list = getNamedParameterJdbcTemplate().query(resultSql.toString(), mapSqlParameterSource, pRowMapper);
+        result.setResult(list);
+
+        int rows = getNamedParameterJdbcTemplate().queryForInt(totalCntSql.toString(), mapSqlParameterSource);
+        result.setTotalCount(rows);
+
+
+        return result;
+    }
+}

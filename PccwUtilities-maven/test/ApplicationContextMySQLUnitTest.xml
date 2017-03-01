@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="BomWebPortalMySQLDS"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url"
+			value="jdbc:mysql://10.37.122.137:3306/scboss_uat?useSSL=false" />
+		<!-- <property name="connectionProperties"><value>characterEncoding=utf-8;connectionCollation=utf8_general_ci</value></property> -->
+		<property name="username" value="scBossAdmin" />
+		<property name="password" value="4r#E2w!Q" />
+	</bean>
+	<bean id="BomWebPortalDS"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="oracle.jdbc.OracleDriver" />
+		<property name="url" value="jdbc:oracle:thin:@//10.82.6.111:14001/spbuat" />
+		<property name="username" value="ops$cnm" />
+		<property name="password" value="OPSCNM11G" />
+	</bean>
+	<bean id="SpringboardDS"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<!--<property name="driverClassName" value="com.mysql.jdbc.jdbc2.optional.MysqlDataSource" 
+			/> -->
+		<property name="url">
+			<value><![CDATA[jdbc:mysql://localhost:3306/spbuat_test?useSSL=false&characterEncoding=utf-8]]></value>
+		</property>
+		<property name="username" value="root" />
+		<property name="password" value="abc123" />
+	</bean>
+	<bean id="OracleSpHelper-BomWebPortalMySQLDS" class="com.pccw.util.db.OracleSpHelper"
+		scope="prototype">
+		<property name="dataSource" ref="BomWebPortalMySQLDS" />
+	</bean>
+	<!-- <bean id="slvIdMySQLDao" class="smartliving.backend.dao.SLVIdDAOMySQLImpl" 
+		scope="singleton"> <property name="dataSource" ref="BomWebPortalMySQLDS" 
+		/> </bean> <bean id="slvIdDao" class="smartliving.backend.dao.SLVIdDAOMySQLImpl" 
+		scope="singleton"> <property name="dataSource" ref="BomWebPortalDS" /> </bean> -->
+	<bean id="OracleSelectHelper-BomWebPortalMySQLDS" class="com.pccw.util.db.OracleSelectHelper"
+		scope="prototype">
+		<property name="dataSource" ref="BomWebPortalMySQLDS" />
+	</bean>
+	<bean id="mysqlDaoHelper" class="com.pccw.util.db.mysql.DaoMySQLHelper"
+		scope="prototype">
+		<!-- <property name="dataSource" ref="BomWebPortalMySQLDS" /> -->
+	</bean>
+	<bean id="sbActvDAOImpl" class="com.pccw.util.datatransfer.dataAccess.SbActvDAOImpl"
+		scope="prototype">
+		<property name="dataSource" ref="BomWebPortalMySQLDS" />
+	</bean>
+	<bean id="OracleSelectHelper" class="com.pccw.util.db.OracleSelectHelper"
+		scope="prototype">
+		<property name="dataSource" ref="BomWebPortalMySQLDS" />
+	</bean>
+	<bean id="bomwebAcctDAOImplMySQL" class="com.pccw.util.datatransfer.dataAccess.BomwebAcctDAOImpl"
+		scope="prototype">
+		<property name="dataSource" ref="BomWebPortalMySQLDS" />
+	</bean>
+	<bean id="bomwebAcctDAOImplOracle" class="com.pccw.util.datatransfer.dataAccess.BomwebAcctDAOImpl"
+		scope="prototype">
+		<property name="dataSource" ref="BomWebPortalDS" />
+	</bean>
+	<bean class="com.pccw.util.datatransfer.dataAccess.WItemAttbDAO" id="WItemAttbDAO"
+		scope="prototype">
+		<property name="dataSource" ref="BomWebPortalMySQLDS" />
+	</bean>
+</beans>
